@@ -48,12 +48,12 @@ void setupCamera() {
   config.pin_sscb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn     = PWDN_GPIO_NUM;
   config.pin_reset    = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 20000000;
+  config.xclk_freq_hz = 24000000;
   config.pixel_format = PIXFORMAT_JPEG;
 
-  config.frame_size    = FRAMESIZE_QVGA;
+  config.frame_size    = FRAMESIZE_VGA;
   config.jpeg_quality  = 10;
-  config.fb_count      = 2;
+  config.fb_count      = 1;
 
   if (!psramFound()) {
     Serial.println("PSRAM not found");
@@ -76,40 +76,40 @@ void SerialCommandTask(void *pvParameters) {
         xSemaphoreGive(captureSemaphore);  // Trigger capture
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(0.01));
   }
 }
 
 void CameraTask(void *pvParameters) {
-  while (true) {
-    if (xSemaphoreTake(captureSemaphore, portMAX_DELAY) == pdTRUE) {
-      camera_fb_t * fb = esp_camera_fb_get();
-      if (!fb) {
-        Serial.println("Camera capture failed");
-        continue;
-      }
+    while (true) {
+        if (xSemaphoreTake(captureSemaphore, portMAX_DELAY) == pdTRUE) {
+            camera_fb_t * fb = esp_camera_fb_get();
+            if (!fb) {
+                Serial.println("Camera capture failed");
+                continue;
+            }
 
-      Serial.write(0xA5);
-      Serial.write(0x5A);
-      uint16_t len = fb->len;
-      Serial.write((uint8_t *)&len, 2);
-      Serial.write(fb->buf, fb->len);
+            Serial.write(0xA5);
+            Serial.write(0x5A);
+            uint16_t len = fb->len;
+            Serial.write((uint8_t *)&len, 2);
+            Serial.write(fb->buf, fb->len);
 
-      esp_camera_fb_return(fb);
+            esp_camera_fb_return(fb);
+        }
     }
-  }
 }
 
 void setup() {
-  Serial.begin(230400);
+  Serial.begin(4000000);
   delay(2000); // Let serial port init
 
   setupCamera();
 
   captureSemaphore = xSemaphoreCreateBinary();
 
-  xTaskCreate(SerialCommandTask, "SerialCommandTask", 2048, NULL, 1, NULL);
-  xTaskCreate(CameraTask, "CameraTask", 4096, NULL, 1, NULL);
+  xTaskCreate(SerialCommandTask, "SerialCommandTask", 4096, NULL, 1, NULL);
+xTaskCreate(CameraTask, "CameraTask", 8192, NULL, 1, NULL);
 
   Serial.println("Ready. Send 'C' over serial to capture.");
 }
