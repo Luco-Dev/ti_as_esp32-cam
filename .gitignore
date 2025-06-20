@@ -1,1 +1,5 @@
 .pio
+lib
+include
+bin
+lib64

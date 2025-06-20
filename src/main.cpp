@@ -28,6 +28,23 @@
 volatile bool captureRequested = false;
 SemaphoreHandle_t captureSemaphore;
 
+// FRAMESIZE_QQVGA	160 x 120	Very low, fast
+// FRAMESIZE_QVGA	320 x 240	Low, fast
+// FRAMESIZE_CIF	352 x 288	Low
+// FRAMESIZE_VGA	640 x 480	Default, good balance
+// FRAMESIZE_SVGA	800 x 600	Medium, higher memory use
+// FRAMESIZE_XGA	1024 x 768	Higher, may struggle
+// FRAMESIZE_SXGA	1280 x 1024	High, might cause OOM errors
+// FRAMESIZE_UXGA	1600 x 1200	Usually too high for AI Thinker
+
+// 1	Best image quality, largest file size, slowest processing
+// 10	Very good quality (often recommended)
+// 20	Good quality, smaller file size
+// 30	Medium quality
+// 40+	Lower quality, faster, smallest file size
+// 63	Worst quality, fastest capture
+
+
 void setupCamera() {
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -51,9 +68,9 @@ void setupCamera() {
   config.xclk_freq_hz = 24000000;
   config.pixel_format = PIXFORMAT_JPEG;
 
-  config.frame_size    = FRAMESIZE_VGA;
-  config.jpeg_quality  = 10;
-  config.fb_count      = 1;
+  config.frame_size    = FRAMESIZE_QQVGA;
+  config.jpeg_quality  = 63;
+  config.fb_count      = 2;
 
   if (!psramFound()) {
     Serial.println("PSRAM not found");
@@ -76,7 +93,7 @@ void SerialCommandTask(void *pvParameters) {
         xSemaphoreGive(captureSemaphore);  // Trigger capture
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(0.01));
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 }
 
